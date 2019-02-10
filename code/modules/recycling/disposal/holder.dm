@@ -9,6 +9,7 @@
 	dir = NONE
 	rad_flags = RAD_PROTECT_CONTENTS | RAD_NO_CONTAMINATE
 	var/datum/gas_mixture/gas	// gas used to flush, will appear at exit point
+	var/datum/reagents/chems	// chems dumped down the drain, will also appear at exit point
 	var/active = FALSE			// true if the holder is moving, otherwise inactive
 	var/count = 1000			// can travel 1000 steps before going inactive (in case of loops)
 	var/destinationTag = NONE	// changes if contains a delivery container
@@ -23,6 +24,7 @@
 // initialize a holder from the contents of a disposal unit
 /obj/structure/disposalholder/proc/init(obj/machinery/disposal/D)
 	gas = D.air_contents// transfer gas resv. into holder object
+	chems = D.chem_contents // transfer chems into holder
 
 	//Check for any living mobs trigger hasmob.
 	//hasmob effects whether the package goes to cargo or its tagged destination.
@@ -124,6 +126,15 @@
 /obj/structure/disposalholder/proc/vent_gas(turf/T)
 	T.assume_air(gas)
 	T.air_update_turf()
+
+// called to dump chems out as foam at a location
+/obj/structure/disposalholder/proc/dump_chems(turf/T)
+	for(var/mob/M in viewers(5, T))
+		to_chat(M, "<span class='danger'>The pipe spews out foam!</span>")
+	var/datum/effect_system/foam_spread/s = new()
+	s.set_up(chems.total_volume*0.5, T, chems)
+	s.start()
+	chems.clear_reagents()
 
 /obj/structure/disposalholder/AllowDrop()
 	return TRUE

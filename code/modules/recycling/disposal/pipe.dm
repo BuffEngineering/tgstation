@@ -122,6 +122,8 @@
 		if(target)
 			AM.throw_at(target, eject_range, 1)
 	H.vent_gas(T)
+	if(H.chems.total_volume != 0)
+		H.dump_chems(T)
 	qdel(H)
 
 

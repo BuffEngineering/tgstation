@@ -12,6 +12,7 @@
 	obj_flags = CAN_BE_HIT | USES_TGUI
 	rad_flags = RAD_PROTECT_CONTENTS | RAD_NO_CONTAMINATE
 	var/datum/gas_mixture/air_contents	// internal reservoir
+	var/datum/reagents/chem_contents // illegally dumped chemicals
 	var/full_pressure = FALSE
 	var/pressure_charging = TRUE
 	var/flush = 0	// true if flush handle is pulled
@@ -39,6 +40,7 @@
 
 	air_contents = new /datum/gas_mixture()
 	//gas.volume = 1.05 * CELLSTANDARD
+	chem_contents = new /datum/reagents()
 	update_icon()
 
 	return INITIALIZE_HINT_LATELOAD //we need turfs to have air
@@ -228,6 +230,8 @@
 		AM.throw_at(target, 5, 1)
 
 	H.vent_gas(loc)
+	if(H.chems.total_volume != 0)
+		H.dump_chems(loc)
 	qdel(H)
 
 /obj/machinery/disposal/deconstruct(disassembled = TRUE)
