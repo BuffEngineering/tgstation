@@ -131,9 +131,9 @@
 /obj/structure/disposalholder/proc/dump_chems(turf/T)
 	for(var/mob/M in viewers(5, T))
 		to_chat(M, "<span class='danger'>The pipe spews out foam!</span>")
-	var/datum/effect_system/foam_spread/s = new()
-	s.set_up(chems.total_volume*0.5, T, chems)
-	s.start()
+	var/datum/effect_system/foam_spread/foam = new()
+	foam.set_up(chems.total_volume*0.2, T, chems)
+	foam.start()
 	chems.clear_reagents()
 
 /obj/structure/disposalholder/AllowDrop()

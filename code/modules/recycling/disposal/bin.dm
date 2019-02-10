@@ -103,6 +103,19 @@
 	else
 		return ..()
 
+/obj/machinery/disposal/AltClick(mob/user)
+	if(user.canUseTopic(src, BE_CLOSE))
+		var/obj/item/reagent_containers/I = check_dumping(user)
+		if(I.reagent_flags == OPENCONTAINER || I.spillable == TRUE)
+			playsound(src, 'sound/mecha/mechmove03.ogg', 50, 1)
+			message_admins("[I] Big zibba") 
+
+/obj/machinery/disposal/proc/check_dumping(mob/living/user)
+	var/obj/item/reagent_containers/C = null
+	if(istype(user.get_active_held_item(), /obj/item/reagent_containers))
+		C = user.get_active_held_item()
+		return C
+
 /obj/machinery/disposal/proc/place_item_in_disposal(obj/item/I, mob/user)
 	I.forceMove(src)
 	user.visible_message("[user.name] places \the [I] into \the [src].", "<span class='notice'>You place \the [I] into \the [src].</span>")
