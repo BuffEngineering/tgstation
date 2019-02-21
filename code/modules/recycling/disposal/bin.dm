@@ -12,7 +12,6 @@
 	obj_flags = CAN_BE_HIT | USES_TGUI
 	rad_flags = RAD_PROTECT_CONTENTS | RAD_NO_CONTAMINATE
 	var/datum/gas_mixture/air_contents	// internal reservoir
-	var/datum/reagents/chem_contents // illegally dumped chemicals
 	var/full_pressure = FALSE
 	var/pressure_charging = TRUE
 	var/flush = 0	// true if flush handle is pulled
@@ -40,7 +39,7 @@
 
 	air_contents = new /datum/gas_mixture()
 	//gas.volume = 1.05 * CELLSTANDARD
-	chem_contents = new /datum/reagents()
+	reagents = new /datum/reagents() //illegally dumped chems
 	update_icon()
 
 	return INITIALIZE_HINT_LATELOAD //we need turfs to have air
@@ -107,8 +106,9 @@
 	if(user.canUseTopic(src, BE_CLOSE))
 		var/obj/item/reagent_containers/I = check_dumping(user)
 		if(I.reagent_flags == OPENCONTAINER || I.spillable == TRUE)
-			playsound(src, 'sound/mecha/mechmove03.ogg', 50, 1)
-			message_admins("[I] Big zibba") 
+			I.reagents.trans_to(src, I.reagents.total_volume, transfered_by = user)
+			user.visible_message("<span class='danger'>[user.name] dumps \the [I] into \the [src]!", "<span class='notice'>You dump \the [I] into \the [src].</span>")
+	return
 
 /obj/machinery/disposal/proc/check_dumping(mob/living/user)
 	var/obj/item/reagent_containers/C = null
