@@ -11,7 +11,9 @@
 	interaction_flags_machine = INTERACT_MACHINE_OPEN | INTERACT_MACHINE_WIRES_IF_OPEN | INTERACT_MACHINE_ALLOW_SILICON | INTERACT_MACHINE_OPEN_SILICON
 	obj_flags = CAN_BE_HIT | USES_TGUI
 	rad_flags = RAD_PROTECT_CONTENTS | RAD_NO_CONTAMINATE
+	var/reagent_flags = TRANSPARENT
 	var/datum/gas_mixture/air_contents	// internal reservoir
+	var/dumpable = 1 // checks of the variant can have chemicals dumped into it
 	var/full_pressure = FALSE
 	var/pressure_charging = TRUE
 	var/flush = 0	// true if flush handle is pulled
@@ -39,7 +41,9 @@
 
 	air_contents = new /datum/gas_mixture()
 	//gas.volume = 1.05 * CELLSTANDARD
-	reagents = new /datum/reagents() //illegally dumped chems
+	reagents = new /datum/reagents() // illegally dumped chems
+	reagents.maximum_volume = 1000 // probably bigger than a large beaker
+	reagents.my_atom = src
 	update_icon()
 
 	return INITIALIZE_HINT_LATELOAD //we need turfs to have air
@@ -102,19 +106,36 @@
 	else
 		return ..()
 
-/obj/machinery/disposal/AltClick(mob/user)
-	if(user.canUseTopic(src, BE_CLOSE))
+/obj/machinery/disposal/AltClick(mob/user) // dumps the chemicals in
+	if(user.canUseTopic(src, BE_CLOSE) && dumpable)
 		var/obj/item/reagent_containers/I = check_dumping(user)
-		if(I.reagent_flags == OPENCONTAINER || I.spillable == TRUE)
+		if(I.reagent_flags == OPENCONTAINER || I.spillable == TRUE) // don't want to drain pasta
+			if(!I.reagents.total_volume)
+				to_chat(user, "<span class='warning'>[I] is empty!</span>")
+				return
+			if(reagents.holder_full())
+				to_chat(user, "<span class='warning'>[src] is full.</span>")
+				return
+			add_fingerprint(user)
 			I.reagents.trans_to(src, I.reagents.total_volume, transfered_by = user)
-			user.visible_message("<span class='danger'>[user.name] dumps \the [I] into \the [src]!", "<span class='notice'>You dump \the [I] into \the [src].</span>")
+			user.visible_message("<span class='warning'>[user.name] dumps \the [I] into \the [src]!", "<span class='notice'>You dump \the [I] into \the [src].</span>")
 	return
 
-/obj/machinery/disposal/proc/check_dumping(mob/living/user)
+/obj/machinery/disposal/proc/check_dumping(mob/living/user) // checks if the user's active item is a reagent container and returns it
 	var/obj/item/reagent_containers/C = null
 	if(istype(user.get_active_held_item(), /obj/item/reagent_containers))
 		C = user.get_active_held_item()
 		return C
+
+/obj/machinery/disposal/examine(mob/user) // I didn't like how giving it the TRANSPARENT flag makes it say "contains nothing" when it just didn't have chems
+	..()
+	if(reagents.total_volume)
+		to_chat(user,  "<span class='warning'>The inside looks wet!</span>")
+	if(user.can_see_reagents())
+		to_chat(user, "It contains:")
+		for(var/datum/reagent/R in reagents.reagent_list)
+			to_chat(user, "[R.volume] units of [R.name]")
+	return
 
 /obj/machinery/disposal/proc/place_item_in_disposal(obj/item/I, mob/user)
 	I.forceMove(src)
@@ -185,6 +206,8 @@
 // eject the contents of the disposal unit
 /obj/machinery/disposal/proc/eject()
 	var/turf/T = get_turf(src)
+	reagents.reaction(T, TOUCH) // doesn't have pressure behind it so it just plops out 
+	reagents.clear_reagents()
 	for(var/atom/movable/AM in src)
 		AM.forceMove(T)
 		AM.pipe_eject(0)
@@ -460,6 +483,7 @@
 	density = TRUE
 	icon_state = "intake"
 	pressure_charging = FALSE // the chute doesn't need charging and always works
+	dumpable = 0 // if you want the fancy foam you've gotta flush
 
 /obj/machinery/disposal/deliveryChute/Initialize(mapload, obj/structure/disposalconstruct/make_from)
 	. = ..()
